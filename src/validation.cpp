@@ -48,7 +48,7 @@
 #include <boost/thread.hpp>
 
 #if defined(NDEBUG)
-# error "Bitcoin cannot be compiled without assertions."
+# error "XPChain cannot be compiled without assertions."
 #endif
 
 #define MICRO 0.000001
@@ -231,7 +231,7 @@ CTxMemPool mempool(&feeEstimator);
 /** Constant stuff for coinbase transactions we create: */
 CScript COINBASE_FLAGS;
 
-const std::string strMessageMagic = "Bitcoin Signed Message:\n";
+const std::string strMessageMagic = "XPChain Signed Message:\n";
 
 // Internal stuff
 namespace {
@@ -1670,7 +1670,7 @@ static bool WriteTxIndexDataForBlock(const CBlock& block, CValidationState& stat
 static CCheckQueue<CScriptCheck> scriptcheckqueue(128);
 
 void ThreadScriptCheck() {
-    RenameThread("bitcoin-scriptch");
+    RenameThread("xpchain-scriptch");
     scriptcheckqueue.Thread();
 }
 

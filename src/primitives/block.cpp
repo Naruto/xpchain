@@ -9,6 +9,9 @@
 #include <tinyformat.h>
 #include <utilstrencodings.h>
 #include <crypto/common.h>
+#include <kernel.h>
+#include "block.h"
+
 
 uint256 CBlockHeader::GetHash() const
 {
@@ -29,4 +32,9 @@ std::string CBlock::ToString() const
         s << "  " << tx->ToString() << "\n";
     }
     return s.str();
+}
+
+unsigned int CBlock::GetStakeEntropyBit() const {
+    const CBlock *self = this;
+    return ::GetStakeEntropyBit(*self);
 }

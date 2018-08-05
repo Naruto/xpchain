@@ -9,6 +9,9 @@
 #include <script/interpreter.h>
 #include <consensus/validation.h>
 
+#include <kernel.h>
+#include <validation.h>   // GetCoinAge()
+
 // TODO remove the following dependencies
 #include <chain.h>
 #include <coins.h>
@@ -171,6 +174,13 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     CAmount nValueOut = 0;
     for (const auto& txout : tx.vout)
     {
+        if (txout.IsEmpty() && (!tx.IsCoinBase()) && (!tx.IsCoinStake()))
+            return state.DoS(100, false, REJECT_INVALID, "empty-txout");
+        // peercoin: enforce minimum output amount
+        // v0.5 protocol: zero amount allowed
+        if ((!txout.IsEmpty()) && txout.nValue < MIN_TXOUT_AMOUNT &&
+            !(IsProtocolV05(tx.nTime) && (txout.nValue == 0)))
+            return state.DoS(100, false, REJECT_INVALID, "txout.nValue below minimum");
         if (txout.nValue < 0)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-negative");
         if (txout.nValue > MAX_MONEY)
@@ -205,7 +215,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     return true;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
+bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, const Consensus::Params& params)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -220,11 +230,15 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         assert(!coin.IsSpent());
 
         // If prev is coinbase, check that it's matured
-        if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
+        if ((coin.IsCoinBase() || coin.IsCoinStake()) && nSpendHeight - coin.nHeight < params.nCoinbaseMaturity) {
             return state.Invalid(false,
-                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase",
+                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase/coinstake",
                 strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
         }
+
+        // peercoin: check transaction timestamp
+        if (coin.nTime > tx.nTime)
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-spent-too-early", false, strprintf("%s : transaction timestamp earlier than input transaction", __func__));
 
         // Check for negative or overflow input values
         nValueIn += coin.out.nValue;
@@ -233,18 +247,34 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
-    const CAmount value_out = tx.GetValueOut();
-    if (nValueIn < value_out) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
-            strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
+    if (tx.IsCoinStake())
+    {
+        // peercoin: coin stake tx earns reward instead of paying fee
+        CAmount nLimit = 0;
+        uint64_t nCoinAge;
+        if (!GetCoinAge(tx, inputs, nCoinAge))
+            return state.DoS(100, false, REJECT_INVALID, "unable to get coin age for coinstake");
+        nLimit = GetProofOfStakeReward(nCoinAge);
+        CAmount nStakeReward = tx.GetValueOut() - nValueIn;
+        if (nStakeReward > nLimit - tx.GetMinFee() + MIN_TX_FEE)
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-coinstake-too-large");
     }
-
-    // Tally transaction fees
-    const CAmount txfee_aux = nValueIn - value_out;
-    if (!MoneyRange(txfee_aux)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-txns-fee-outofrange");
+    else
+    {
+        const CAmount value_out = tx.GetValueOut();
+        if (nValueIn < value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
+                             strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
+        }
+        // Tally transaction fees
+        const CAmount txfee_aux = nValueIn - value_out;
+        if (!MoneyRange(txfee_aux)) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-fee-outofrange");
+        }
+        // peercoin: enforce transaction fees for every block
+        if (txfee_aux < tx.GetMinFee())
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-fee-not-enough");
+        txfee = txfee_aux;
     }
-
-    txfee = txfee_aux;
     return true;
 }

@@ -75,6 +75,16 @@ struct Params {
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
+
+    /** peercoin stuff */
+    uint256 bnInitialHashTarget;
+    int64_t nStakeTargetSpacing;
+    int64_t nTargetSpacingWorkMax;
+    int64_t nTargetTimespan;
+    int64_t nStakeMinAge;
+    int64_t nStakeMaxAge;
+    int64_t nModifierInterval;
+    int nCoinbaseMaturity;  // Coinbase transaction outputs can only be spent after this number of new blocks (network rule)
 };
 } // namespace Consensus
 

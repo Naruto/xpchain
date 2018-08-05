@@ -14,6 +14,10 @@ typedef int64_t CAmount;
 static const CAmount COIN = 100000000;
 static const CAmount CENT = 1000000;
 
+static const CAmount MIN_TX_FEE = CENT;
+static const CAmount MIN_TXOUT_AMOUNT = MIN_TX_FEE;
+static const CAmount MAX_MINT_PROOF_OF_WORK = 9999 * COIN;
+
 /** No amount larger than this (in satoshi) is valid.
  *
  * Note that this constant is *not* the total money supply, which in Bitcoin

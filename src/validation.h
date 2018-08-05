@@ -41,6 +41,7 @@ class CScriptCheck;
 class CBlockPolicyEstimator;
 class CTxMemPool;
 class CValidationState;
+class CKeyStore;
 struct ChainTxData;
 
 struct PrecomputedTransactionData;
@@ -484,5 +485,13 @@ bool DumpMempool();
 
 /** Load the mempool from disk. */
 bool LoadMempool();
+
+// peercoin:
+CAmount GetProofOfWorkReward(unsigned int nBits);
+CAmount GetProofOfStakeReward(int64_t nCoinAge);
+bool GetCoinAge(const CTransaction& tx, const CCoinsViewCache &view, uint64_t& nCoinAge); // peercoin: get transaction coin age
+bool SignBlock(CBlock& block, const CKeyStore& keystore);
+bool CheckBlockSignature(const CBlock& block);
+
 
 #endif // BITCOIN_VALIDATION_H

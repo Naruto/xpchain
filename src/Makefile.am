@@ -105,6 +105,8 @@ BITCOIN_CORE_H = \
   indirectmap.h \
   init.h \
   key.h \
+  kernel.h \
+  kernelrecord.h \
   keystore.h \
   dbwrapper.h \
   limitedmap.h \
@@ -225,6 +227,7 @@ libbitcoin_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
+  kernel.cpp \
   $(BITCOIN_CORE_H)
 
 if ENABLE_ZMQ
@@ -252,6 +255,7 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
+  kernelrecord.cpp \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
@@ -423,7 +427,9 @@ xpchain_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 #
 
 # xpchain-tx binary #
-xpchain_tx_SOURCES = xpchain-tx.cpp
+xpchain_tx_SOURCES = \
+xpchain-tx.cpp \
+timedatadummy.cpp
 xpchain_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 xpchain_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 xpchain_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)

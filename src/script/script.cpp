@@ -7,6 +7,7 @@
 
 #include <tinyformat.h>
 #include <utilstrencodings.h>
+#include <key.h>
 
 const char* GetOpName(opcodetype opcode)
 {
@@ -279,4 +280,17 @@ bool CScript::HasValidOps() const
         }
     }
     return true;
+}
+
+void CScript::SetMultisig(int nRequired, const std::vector<CPubKey>& keys)
+{
+    this->clear();
+
+    *this << EncodeOP_N(nRequired);
+    for (const auto& pubkey : keys)
+    {
+        std::vector<unsigned char> vchPubKey(pubkey.begin(), pubkey.end());
+        *this << vchPubKey;
+    }
+    *this << EncodeOP_N(keys.size()) << OP_CHECKMULTISIG;
 }
